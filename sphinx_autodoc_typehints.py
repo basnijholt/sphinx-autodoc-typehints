@@ -262,13 +262,16 @@ def _future_annotations_imported(obj):
     if _annotations is None:
         return False
     # Make sure that annotations is imported from __future__
-    CO_FUTURE_ANNOTATIONS = 0x1000000
+    CO_FUTURE_ANNOTATIONS = 0x1000000  # defined in cpython/Lib/__future__.py
     return _annotations.compiler_flag == CO_FUTURE_ANNOTATIONS
 
 
 def get_all_type_hints(obj, name):
     rv = {}
 
+    # If one is using PEP563 annotations, Python will raise a TypeError on
+    # e.g. 'str | None', therefore we accept TypeErrors if 'annotations'
+    # is imported from '__future__'.
     ignore_errors = (AttributeError, RecursionError)
     catch_errors = (NameError,)
     if _future_annotations_imported(obj):
