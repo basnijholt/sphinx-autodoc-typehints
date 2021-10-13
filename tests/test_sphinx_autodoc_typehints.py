@@ -352,6 +352,20 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
               Return type:
                  "str"
 
+           a_method_with_py310_PEP563_annotations(x, y, z=None)
+
+              Method docstring.
+
+              Parameters:
+                 * **x** (*bool*) -- foo
+
+                 * **y** (*int*) -- bar
+
+                 * **z** (*str** | **None*) -- baz
+
+              Return type:
+                 str
+
            property a_property
 
               Property docstring
