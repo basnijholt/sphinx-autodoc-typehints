@@ -269,23 +269,21 @@ def _future_annotations_imported(obj):
 def get_all_type_hints(obj, name):
     rv = {}
 
-    # If one is using PEP563 annotations, Python will raise a TypeError on
-    # e.g. 'str | None', therefore we accept TypeErrors if 'annotations'
-    # is imported from '__future__'.
-    ignore_errors = (AttributeError, RecursionError)
-    catch_errors = (NameError,)
-    if _future_annotations_imported(obj):
-        catch_errors += (TypeError,)
-    else:
-        ignore_errors += (TypeError,)
-
     try:
         rv = get_type_hints(obj)
-    except ignore_errors:
+    except (AttributeError, TypeError, RecursionError) as exc:
         # Introspecting a slot wrapper will raise TypeError, and and some recursive type
         # definitions will cause a RecursionError (https://github.com/python/typing/issues/574).
-        pass
-    except catch_errors as exc:
+
+        # If one is using PEP563 annotations, Python will raise a (e.g.,)
+        # TypeError("TypeError: unsupported operand type(s) for |: 'type' and 'NoneType'")
+        # on 'str | None', therefore we accept TypeErrors with that error message
+        # if 'annotations' is imported from '__future__'.
+        if (isinstance(exc, TypeError)
+            and _future_annotations_imported(obj)
+            and "unsupported operand type" in str(exc)):
+            rv = obj.__annotations__
+    except NameError as exc:
         logger.warning('Cannot resolve forward reference in type annotations of "%s": %s',
                        name, exc)
         rv = obj.__annotations__
