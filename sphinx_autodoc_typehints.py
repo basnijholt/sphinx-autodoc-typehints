@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import inspect
 import sys
 import textwrap
@@ -259,16 +257,32 @@ def process_signature(app, what: str, name: str, obj, options, signature, return
     return stringify_signature(signature).replace('\\', '\\\\'), None
 
 
+def _future_annotations_imported(obj):
+    _annotations = getattr(inspect.getmodule(obj), "annotations", None)
+    if _annotations is None:
+        return False
+    # Make sure that annotations is imported from __future__
+    CO_FUTURE_ANNOTATIONS = 0x1000000
+    return _annotations.compiler_flag == CO_FUTURE_ANNOTATIONS
+
+
 def get_all_type_hints(obj, name):
     rv = {}
 
+    ignore_errors = (AttributeError, RecursionError)
+    catch_errors = (NameError,)
+    if _future_annotations_imported(obj):
+        catch_errors += (TypeError,)
+    else:
+        ignore_errors += (TypeError,)
+
     try:
         rv = get_type_hints(obj)
-    except (AttributeError, TypeError, RecursionError):
+    except ignore_errors:
         # Introspecting a slot wrapper will raise TypeError, and and some recursive type
         # definitions will cause a RecursionError (https://github.com/python/typing/issues/574).
         pass
-    except NameError as exc:
+    except catch_errors as exc:
         logger.warning('Cannot resolve forward reference in type annotations of "%s": %s',
                        name, exc)
         rv = obj.__annotations__
