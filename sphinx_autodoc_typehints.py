@@ -284,7 +284,7 @@ def get_all_type_hints(obj, name):
         # if 'annotations' is imported from '__future__'.
         if (isinstance(exc, TypeError)
             and _future_annotations_imported(obj)
-            and "unsupported operand type" in str(exc)):
+                and "unsupported operand type" in str(exc)):
             rv = obj.__annotations__
     except NameError as exc:
         logger.warning('Cannot resolve forward reference in type annotations of "%s": %s',

@@ -533,7 +533,7 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
 
 
 @pytest.mark.skipif(sys.version_info < (3, 7),
-    reason="Future annotations are not implemented in Python 3.6")
+                    reason="Future annotations are not implemented in Python 3.6")
 @pytest.mark.sphinx('text', testroot='dummy')
 def test_sphinx_output_future_annotations(app, status, warning):
     set_python_path()
