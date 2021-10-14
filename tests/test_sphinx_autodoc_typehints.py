@@ -231,6 +231,23 @@ def set_python_path():
         sys.path.insert(0, str(test_path))
 
 
+def maybe_fix_py310(expected_contents):
+    if sys.version_info[:2] >= (3, 10):
+        # In Python ≥ 3.10, the PEP563 can be interpreted as real annotations
+        # instead of strings.
+        for old, new in [
+                ("*str** | **None*", '"Optional"["str", "None"]'),
+                ("(*", '("'),
+                ("*)", '")'),
+                ("   str", '   "str"'),
+                ('"Optional"["str"]', '"Optional"["str", "None"]'),
+                ('"Optional"["Callable"[["int", "bytes"], "int"]]',
+                 '"Optional"["Callable"[["int", "bytes"], "int"], "None"]'),
+        ]:
+            expected_contents = expected_contents.replace(old, new)
+    return expected_contents
+
+
 @pytest.mark.parametrize('always_document_param_types', [True, False])
 @pytest.mark.sphinx('text', testroot='dummy')
 def test_sphinx_output(app, status, warning, always_document_param_types):
@@ -529,7 +546,7 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
               **x** ("Mailbox") -- function
         ''')
         expected_contents = expected_contents.format(**format_args).replace('–', '--')
-        assert text_contents == expected_contents
+        assert text_contents == maybe_fix_py310(expected_contents)
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8),
@@ -564,16 +581,7 @@ def test_sphinx_output_future_annotations(app, status, warning):
            Return type:
               str
         ''')
-        if sys.version_info[:2] >= (3, 10):
-            # In Python ≥ 3.10, the PEP563 can be interpreted as real annotations
-            # instead of strings.
-            for old, new in [
-                    ("*str** | **None*", '"Optional"["str", "None"]'),
-                    ("(*", '("'),
-                    ("*)", '")'),
-                    ("   str", '   "str"')]:
-                expected_contents = expected_contents.replace(old, new)
-        assert text_contents == expected_contents
+        assert text_contents == maybe_fix_py310(expected_contents)
 
 
 def test_normalize_source_lines_async_def():
