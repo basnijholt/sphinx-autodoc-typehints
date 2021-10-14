@@ -358,7 +358,7 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
               Return type:
                  "str"
 
-           property a_property
+           property a_property: str
 
               Property docstring
 
@@ -512,9 +512,7 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
 
            Class docstring.{undoc_params_0}
 
-           __init__(x)
-
-              Initialize self.  See help(type(self)) for accurate signature.{undoc_params_1}
+           __init__(x){undoc_params_1}
 
         @dummy_module.Decorator(func)
 
