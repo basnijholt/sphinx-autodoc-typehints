@@ -223,14 +223,18 @@ def test_process_docstring_slot_wrapper():
     assert not lines
 
 
-@pytest.mark.parametrize('always_document_param_types', [True, False])
-@pytest.mark.sphinx('text', testroot='dummy')
-def test_sphinx_output(app, status, warning, always_document_param_types):
+def set_python_path():
     test_path = pathlib.Path(__file__).parent
 
     # Add test directory to sys.path to allow imports of dummy module.
     if str(test_path) not in sys.path:
         sys.path.insert(0, str(test_path))
+
+
+@pytest.mark.parametrize('always_document_param_types', [True, False])
+@pytest.mark.sphinx('text', testroot='dummy')
+def test_sphinx_output(app, status, warning, always_document_param_types):
+    set_python_path()
 
     app.config.always_document_param_types = always_document_param_types
     app.config.autodoc_mock_imports = ['mailbox']
@@ -529,14 +533,10 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
 
 
 @pytest.mark.skipif(sys.version_info < (3, 7),
-   reason="Future annotations are not implemented in Python 3.6")
+    reason="Future annotations are not implemented in Python 3.6")
 @pytest.mark.sphinx('text', testroot='dummy')
 def test_sphinx_output_future_annotations(app, status, warning):
-    test_path = pathlib.Path(__file__).parent
-
-    # Add test directory to sys.path to allow imports of dummy module.
-    if str(test_path) not in sys.path:
-        sys.path.insert(0, str(test_path))
+    set_python_path()
 
     app.config.master_doc = "future_annotations"
     app.build()
