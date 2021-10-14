@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import typing
 from dataclasses import dataclass
 from mailbox import Mailbox
@@ -27,15 +25,6 @@ class Class:
         pass
 
     def a_method(self, x: bool, y: int, z: typing.Optional[str] = None) -> str:
-        """
-        Method docstring.
-
-        :param x: foo
-        :param y: bar
-        :param z: baz
-        """
-
-    def a_method_with_py310_PEP563_annotations(self, x: bool, y: int, z: str | None = None) -> str:
         """
         Method docstring.
 

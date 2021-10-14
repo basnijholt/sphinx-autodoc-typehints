@@ -352,20 +352,6 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
               Return type:
                  "str"
 
-           a_method_with_py310_PEP563_annotations(x, y, z=None)
-
-              Method docstring.
-
-              Parameters:
-                 * **x** (*bool*) -- foo
-
-                 * **y** (*int*) -- bar
-
-                 * **z** (*str** | **None*) -- baz
-
-              Return type:
-                 str
-
            property a_property
 
               Property docstring
@@ -539,6 +525,45 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
               **x** ("Mailbox") -- function
         ''')
         expected_contents = expected_contents.format(**format_args).replace('–', '--')
+        assert text_contents == expected_contents
+
+
+@pytest.mark.skipif(sys.version_info < (3, 7),
+   reason="Future annotations are not implemented in Python 3.6")
+@pytest.mark.sphinx('text', testroot='dummy')
+def test_sphinx_output_future_annotations(app, status, warning):
+    test_path = pathlib.Path(__file__).parent
+
+    # Add test directory to sys.path to allow imports of dummy module.
+    if str(test_path) not in sys.path:
+        sys.path.insert(0, str(test_path))
+
+    app.config.master_doc = "future_annotations"
+    app.build()
+
+    assert 'build succeeded' in status.getvalue()  # Build succeeded
+
+    text_path = pathlib.Path(app.srcdir) / '_build' / 'text' / 'future_annotations.txt'
+    with text_path.open('r') as f:
+        text_contents = f.read().replace('–', '--')
+        expected_contents = textwrap.dedent('''\
+        Dummy Module
+        ************
+
+        dummy_module_future_annotations.function_with_py310_PEP563_annotations(self, x, y, z=None)
+
+           Method docstring.
+
+           Parameters:
+              * **x** (*bool*) -- foo
+
+              * **y** (*int*) -- bar
+
+              * **z** (*str** | **None*) -- baz
+
+           Return type:
+              str
+        ''')
         assert text_contents == expected_contents
 
 
