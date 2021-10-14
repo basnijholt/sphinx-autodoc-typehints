@@ -564,6 +564,15 @@ def test_sphinx_output_future_annotations(app, status, warning):
            Return type:
               str
         ''')
+        if sys.version_info[:2] >= (3, 10):
+            # In Python ≥ 3.10, the PEP563 can be interpreted as real annotations
+            # instead of strings.
+            for old, new in [
+                    ("*str** | **None*", '"Optional"["str", "None"]'),
+                    ("(*", '("'),
+                    ("*)", '")'),
+                    ("   str", '   "str"')]:
+                expected_contents = expected_contents.replace(old, new)
         assert text_contents == expected_contents
 
 
