@@ -258,8 +258,8 @@ def process_signature(app, what: str, name: str, obj, options, signature, return
 
 
 def _future_annotations_imported(obj):
-    if sys.version_info < (3, 7):
-        # Only Pythoh ≥ 3.7 supports PEP563.
+    if sys.version_info < (3, 8):
+        # Only Pythoh ≥ 3.8 supports PEP563.
         return False
     _annotations = getattr(inspect.getmodule(obj), "annotations", None)
     if _annotations is None:

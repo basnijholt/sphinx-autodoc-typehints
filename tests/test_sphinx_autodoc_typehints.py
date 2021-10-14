@@ -238,7 +238,7 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
 
     app.config.always_document_param_types = always_document_param_types
     app.config.autodoc_mock_imports = ['mailbox']
-    if sys.version_info < (3, 7):
+    if sys.version_info < (3, 8):
         app.config.autodoc_mock_imports.append('dummy_module_future_annotations')
     app.build()
 
@@ -534,8 +534,8 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
         assert text_contents == expected_contents
 
 
-@pytest.mark.skipif(sys.version_info < (3, 7),
-                    reason="Future annotations are not implemented in Python 3.6")
+@pytest.mark.skipif(sys.version_info < (3, 8),
+                    reason="Future annotations are not implemented in Python ≤ 3.8")
 @pytest.mark.sphinx('text', testroot='dummy')
 def test_sphinx_output_future_annotations(app, status, warning):
     set_python_path()
