@@ -86,6 +86,11 @@ class Metaclass(type):
     pytest.param(A.Inner, __name__, 'A.Inner', (), id='Inner')
 ])
 def test_parse_annotation(annotation, module, class_name, args):
+    if sys.version_info[:2] >= (3, 10):
+        if annotation == W:
+            module = "test_sphinx_autodoc_typehints"
+            class_name = "W"
+            args = ()
     assert get_annotation_module(annotation) == module
     assert get_annotation_class_name(annotation, module) == class_name
     assert get_annotation_args(annotation, module, class_name) == args
@@ -128,7 +133,10 @@ def test_parse_annotation(annotation, module, class_name, args):
                                     ':py:data:`~typing.Any`]',
                  marks=pytest.mark.skipif((3, 5, 0) <= sys.version_info[:3] <= (3, 5, 2),
                                           reason='Union erases the str on 3.5.0 -> 3.5.2')),
-    (Optional[str],                 ':py:data:`~typing.Optional`\\[:py:class:`str`]'),
+    (Optional[str],                 ':py:data:`~typing.Optional`\\' + (
+                                    '[:py:class:`str`]'
+                                    if sys.version_info[:2] < (3, 10) else
+                                    '[:py:class:`str`, :py:obj:`None`]')),
     (Optional[Union[str, bool]],    ':py:data:`~typing.Union`\\[:py:class:`str`, '
                                     ':py:class:`bool`, :py:obj:`None`]'),
     (Callable,                      ':py:data:`~typing.Callable`'),
@@ -152,7 +160,10 @@ def test_parse_annotation(annotation, module, class_name, args):
     (D,                             ':py:class:`~%s.D`' % __name__),
     (E,                             ':py:class:`~%s.E`' % __name__),
     (E[int],                        ':py:class:`~%s.E`\\[:py:class:`int`]' % __name__),
-    (W,                             ':py:func:`~typing.NewType`\\(:py:data:`~W`, :py:class:`str`)')
+    (W,                             ':py:func:`~typing.NewType`\\(:py:data:`~W`, :py:class:`str`)'
+                                    if sys.version_info[:2] < (3, 10) else
+                                    ':py:class:`~test_sphinx_autodoc_typehints.W`'
+     )
 ])
 def test_format_annotation(inv, annotation, expected_result):
     result = format_annotation(annotation)
