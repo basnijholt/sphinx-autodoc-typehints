@@ -6,6 +6,7 @@ import typing
 from typing import (
     IO, Any, AnyStr, Callable, Dict, Generic, Mapping, Match, NewType, Optional, Pattern, Tuple,
     Type, TypeVar, Union)
+from unittest.mock import patch
 
 import pytest
 import typing_extensions
@@ -237,8 +238,8 @@ def maybe_fix_py310(expected_contents):
         # instead of strings.
         for old, new in [
                 ("*str** | **None*", '"Optional"["str", "None"]'),
-                ("(*", '("'),
-                ("*)", '")'),
+                ("(*bool*)", '("bool")'),
+                ("(*int*)", '("int")'),
                 ("   str", '   "str"'),
                 ('"Optional"["str"]', '"Optional"["str", "None"]'),
                 ('"Optional"["Callable"[["int", "bytes"], "int"]]',
@@ -250,6 +251,7 @@ def maybe_fix_py310(expected_contents):
 
 @pytest.mark.parametrize('always_document_param_types', [True, False])
 @pytest.mark.sphinx('text', testroot='dummy')
+@patch('sphinx.writers.text.MAXWIDTH', 2000)
 def test_sphinx_output(app, status, warning, always_document_param_types):
     set_python_path()
 
@@ -512,8 +514,7 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
               Method docstring.
 
               Parameters:
-                 **x** ("Optional"["Callable"[["int", "bytes"], "int"]]) --
-                 foo
+                 **x** ("Optional"["Callable"[["int", "bytes"], "int"]]) -- foo
 
               Return type:
                  "ClassWithTypehintsNotInline"
@@ -552,6 +553,7 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
 @pytest.mark.skipif(sys.version_info < (3, 8),
                     reason="Future annotations are not implemented in Python ≤ 3.8")
 @pytest.mark.sphinx('text', testroot='dummy')
+@patch('sphinx.writers.text.MAXWIDTH', 2000)
 def test_sphinx_output_future_annotations(app, status, warning):
     set_python_path()
 
