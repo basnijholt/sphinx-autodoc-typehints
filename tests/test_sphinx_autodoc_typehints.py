@@ -6,6 +6,7 @@ import typing
 from typing import (
     IO, Any, AnyStr, Callable, Dict, Generic, Mapping, Match, NewType, Optional, Pattern, Tuple,
     Type, TypeVar, Union)
+from unittest.mock import patch
 
 import pytest
 import typing_extensions
@@ -51,6 +52,9 @@ class Slotted:
 
 class Metaclass(type):
     pass
+
+
+PY310_PLUS = sys.version_info >= (3, 10)
 
 
 @pytest.mark.parametrize('annotation, module, class_name, args', [
@@ -151,7 +155,8 @@ def test_parse_annotation(annotation, module, class_name, args):
     (D,                             ':py:class:`~%s.D`' % __name__),
     (E,                             ':py:class:`~%s.E`' % __name__),
     (E[int],                        ':py:class:`~%s.E`\\[:py:class:`int`]' % __name__),
-    (W,                             ':py:func:`~typing.NewType`\\(:py:data:`~W`, :py:class:`str`)')
+    (W,                             f':py:{"class" if PY310_PLUS else "func"}:'
+                                    f'`~typing.NewType`\\(:py:data:`~W`, :py:class:`str`)')
 ])
 def test_format_annotation(inv, annotation, expected_result):
     result = format_annotation(annotation)
@@ -223,17 +228,40 @@ def test_process_docstring_slot_wrapper():
     assert not lines
 
 
-@pytest.mark.parametrize('always_document_param_types', [True, False])
-@pytest.mark.sphinx('text', testroot='dummy')
-def test_sphinx_output(app, status, warning, always_document_param_types):
+def set_python_path():
     test_path = pathlib.Path(__file__).parent
 
     # Add test directory to sys.path to allow imports of dummy module.
     if str(test_path) not in sys.path:
         sys.path.insert(0, str(test_path))
 
+
+def maybe_fix_py310(expected_contents):
+    if sys.version_info[:2] >= (3, 10):
+        for old, new in [
+                ("*str** | **None*", '"Optional"["str"]'),
+                ("(*bool*)", '("bool")'),
+                ("(*int*)", '("int")'),
+                ("   str", '   "str"'),
+                ('"Optional"["str"]', '"Optional"["str"]'),
+                ('"Optional"["Callable"[["int", "bytes"], "int"]]',
+                 '"Optional"["Callable"[["int", "bytes"], "int"]]'),
+        ]:
+            expected_contents = expected_contents.replace(old, new)
+    return expected_contents
+
+
+@pytest.mark.parametrize('always_document_param_types', [True, False],
+                         ids=['doc_param_type', 'no_doc_param_type'])
+@pytest.mark.sphinx('text', testroot='dummy')
+@patch('sphinx.writers.text.MAXWIDTH', 2000)
+def test_sphinx_output(app, status, warning, always_document_param_types):
+    set_python_path()
+
     app.config.always_document_param_types = always_document_param_types
     app.config.autodoc_mock_imports = ['mailbox']
+    if sys.version_info < (3, 7):
+        app.config.autodoc_mock_imports.append('dummy_module_future_annotations')
     app.build()
 
     assert 'build succeeded' in status.getvalue()  # Build succeeded
@@ -352,7 +380,7 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
               Return type:
                  "str"
 
-           property a_property
+           property a_property: str
 
               Property docstring
 
@@ -489,8 +517,7 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
               Method docstring.
 
               Parameters:
-                 **x** ("Optional"["Callable"[["int", "bytes"], "int"]]) --
-                 foo
+                 **x** ("Optional"["Callable"[["int", "bytes"], "int"]]) -- foo
 
               Return type:
                  "ClassWithTypehintsNotInline"
@@ -506,9 +533,7 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
 
            Class docstring.{undoc_params_0}
 
-           __init__(x)
-
-              Initialize self.  See help(type(self)) for accurate signature.{undoc_params_1}
+           __init__(x){undoc_params_1}
 
         @dummy_module.Decorator(func)
 
@@ -525,7 +550,43 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
               **x** ("Mailbox") -- function
         ''')
         expected_contents = expected_contents.format(**format_args).replace('–', '--')
-        assert text_contents == expected_contents
+        assert text_contents == maybe_fix_py310(expected_contents)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 7),
+                    reason="Future annotations are not implemented in Python < 3.7")
+@pytest.mark.sphinx('text', testroot='dummy')
+@patch('sphinx.writers.text.MAXWIDTH', 2000)
+def test_sphinx_output_future_annotations(app, status, warning):
+    set_python_path()
+
+    app.config.master_doc = "future_annotations"
+    app.build()
+
+    assert 'build succeeded' in status.getvalue()  # Build succeeded
+
+    text_path = pathlib.Path(app.srcdir) / '_build' / 'text' / 'future_annotations.txt'
+    with text_path.open('r') as f:
+        text_contents = f.read().replace('–', '--')
+        expected_contents = textwrap.dedent('''\
+        Dummy Module
+        ************
+
+        dummy_module_future_annotations.function_with_py310_annotations(self, x, y, z=None)
+
+           Method docstring.
+
+           Parameters:
+              * **x** (*bool*) -- foo
+
+              * **y** (*int*) -- bar
+
+              * **z** (*str** | **None*) -- baz
+
+           Return type:
+              str
+        ''')
+        assert text_contents == maybe_fix_py310(expected_contents)
 
 
 def test_normalize_source_lines_async_def():
